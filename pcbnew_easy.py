@@ -44,7 +44,7 @@ def size_mm(x, y):
     return pcbnew.wxSizeMM(float(x), float(y))
 
 def rotate(coord, angle):
-    """Rotate coordinate around (0,0)"""
+    """Rotate coordinate around (0, 0)"""
     coord = (coord[0]+coord[1]*1j) * cmath.exp(math.radians(angle)*1j)
     return (coord.real, coord.imag)
 
@@ -101,7 +101,7 @@ class Board(object):
             board = pcbnew.BOARD()
         self.board = board
 
-    def create_module(self, ref, pos=(0,0)):
+    def create_module(self, ref, pos=(0, 0)):
         """Create new module on the board"""
         module = pcbnew.MODULE(self.board)
         module.SetReference(ref)
@@ -109,7 +109,7 @@ class Board(object):
         self.board.Add(module)
         return Module(module)
 
-    def copy_module(self, original, ref, pos=(0,0)):
+    def copy_module(self, original, ref, pos=(0, 0)):
         """Create a copy of an existing module on the board"""
         module = pcbnew.MODULE(self.board)
         module.Copy(original.module)
@@ -135,7 +135,8 @@ class Board(object):
     def add_track(self, coords, layer='F_Cu', width=None):
         """Create a track polyline
 
-        Create track segments from each coordinate to the next"""
+        Create track segments from each coordinate to the next.
+        """
         for n in range(len(coords)-1):
             self.add_track_segment(coords[n], coords[n+1], layer=layer, width=width)
 
@@ -339,8 +340,7 @@ def get_board():
     return Board(pcbnew.GetBoard())
 
 
-
-
+# Usage example and test
 def test():
     """Make an example board
 
@@ -353,28 +353,29 @@ def test():
 
     # create test module
     m = pcb.create_module('test')
-    m.add_arc(center=(0,0), radius=8, start_angle=-180, stop_angle=0, width=0.2)
-    m.add_line(start=(-8,0), end=(8,0), width=0.2)
-    m.add_pad(pos=(-4,-3), size=2, drill=1)
-    m.add_pad(pos=(4,-3), size=2, drill=1, layers=['B_Cu','F_Cu'])
+    m.add_arc(center=(0, 0), radius=8, start_angle=-180, stop_angle=0, width=0.2)
+    m.add_line(start=(-8, 0), end=(8, 0), width=0.2)
+    m.add_pad(pos=(-4, -3), size=2, drill=1)
+    m.add_pad(pos=(4, -3), size=2, drill=1, layers=['B_Cu', 'F_Cu'])
     for n, x in enumerate([-1, -.5, 0, .5, 1]):
-        m.add_pad(pos=(x,-4), size=(0.25,1.2), name=n, pad_type='smd', shape='rect')
+        m.add_pad(pos=(x, -4), size=(0.25, 1.2), name=n, pad_type='smd', shape='rect')
 
     # move module to right location
-    m.move((30,30))
+    m.move((30, 30))
 
     # add test track with via
-    track1 = [(30,26), (30,50), (60,80)]
-    track2 = [(60,80), (80,80)]
+    track1 = [(30, 26), (30, 50), (60, 80)]
+    track2 = [(60, 80), (80, 80)]
     pcb.add_track(track1, layer='F_Cu', width=0.25)
     pcb.add_track_via(track1[-1])
     pcb.add_track(track2, layer='B_Cu')
 
     # add board edge
-    ul = (20,20)
-    pcb_size = (100,80)
+    ul = (20, 20)
+    pcb_size = (100, 80)
     edge = [ul,
             (ul[0], ul[1]+pcb_size[1]),
             (ul[0]+pcb_size[0], ul[1]+pcb_size[1]),
-            (ul[0]+pcb_size[0], ul[1]), ul]
+            (ul[0]+pcb_size[0], ul[1]),
+            ul]
     pcb.add_polyline(edge, layer='Edge_Cuts')
