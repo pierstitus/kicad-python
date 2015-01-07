@@ -201,7 +201,7 @@ class Board(object):
 
     def add_arc(self, center, radius, start_angle, stop_angle, layer='F_SilkS', width=0.15):
         """Create a graphic arc on the board"""
-        start_coord = radius * cmath.exp(math.radians(start_angle)*1j)
+        start_coord = radius * cmath.exp(math.radians(start_angle-90)*1j)
         start_coord = p_mm(start_coord.real, start_coord.imag)
         angle = stop_angle - start_angle
         a = pcbnew.DRAWSEGMENT(self.board)
@@ -257,7 +257,7 @@ class Module(object):
 
     def add_arc(self, center, radius, start_angle, stop_angle, layer='F_SilkS', width=0.15):
         """Create a graphic arc on the module"""
-        start_coord = radius * cmath.exp(math.radians(start_angle)*1j)
+        start_coord = radius * cmath.exp(math.radians(start_angle-90)*1j)
         start_coord = p_mm(start_coord.real, start_coord.imag)
         angle = stop_angle - start_angle
         a = pcbnew.EDGE_MODULE(self.module)
@@ -353,7 +353,7 @@ def test():
 
     # create test module
     m = pcb.create_module('test')
-    m.add_arc(center=(0, 0), radius=8, start_angle=-180, stop_angle=0, width=0.2)
+    m.add_arc(center=(0, 0), radius=8, start_angle=-90, stop_angle=90, width=0.2)
     m.add_line(start=(-8, 0), end=(8, 0), width=0.2)
     m.add_pad(pos=(-4, -3), size=2, drill=1)
     m.add_pad(pos=(4, -3), size=2, drill=1, layers=['B_Cu', 'F_Cu'])
