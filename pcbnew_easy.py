@@ -30,6 +30,26 @@ import cmath
 
 import pcbnew
 
+def inch_to_mm(val):
+    """Convert from inch to mm
+
+    Handles single values, sequences, sequences of sequences, etc.
+    """
+    try:
+        return val * 25.4
+    except TypeError:
+        return [inch_to_mm(v) for v in val]
+
+def mm_to_inch(val):
+    """Convert from mm to inch
+
+    Handles single values, sequences, sequences of sequences, etc.
+    """
+    try:
+        return val / 25.4
+    except TypeError:
+        return [mm_to_inch(v) for v in val]
+
 # helper functions
 def from_mm(val):
     """Convert mm to internal units"""
