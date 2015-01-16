@@ -48,16 +48,16 @@ def rotate(coord, angle):
     coord = (coord[0]+coord[1]*1j) * cmath.exp(math.radians(angle)*1j)
     return (coord.real, coord.imag)
 
+# dicts for converting layer name to id, used by get_layer
+layer_dict = {pcbnew.BOARD_GetStandardLayerName(n):n for n in range(pcbnew.LAYER_ID_COUNT)}
+layer_names = {s:n for n, s in layer_dict.iteritems()}
+
 def get_layer(s):
     """Get layer id from layer name
 
     If it is already an int just return it.
     """
-    if hasattr(pcbnew, s):
-        return getattr(pcbnew, s)
-    if isinstance(s, int) and 0 <= s < pcbnew.LAYER_ID_COUNT:
-        return s
-    return None
+    return layer_dict[s]
 
 def LayerSet(layers):
     """Create LayerSet used for defining pad layers"""
@@ -103,7 +103,7 @@ class Board(object):
         self.board.Add(module)
         return Module(module)
 
-    def add_track_segment(self, start, end, layer='F_Cu', width=None):
+    def add_track_segment(self, start, end, layer='F.Cu', width=None):
         """Create a track segment"""
         if width == None:
             width = self.board.GetDesignSettings().GetCurrentTrackWidth()
@@ -117,7 +117,7 @@ class Board(object):
         self.board.Add(t)
         return t
 
-    def add_track(self, coords, layer='F_Cu', width=None):
+    def add_track(self, coords, layer='F.Cu', width=None):
         """Create a track polyline
 
         Create track segments from each coordinate to the next.
@@ -125,12 +125,12 @@ class Board(object):
         for n in range(len(coords)-1):
             self.add_track_segment(coords[n], coords[n+1], layer=layer, width=width)
 
-    def add_track_via(self, coord, layer_pair=('B_Cu', 'F_Cu'), size=None, drill=None):
+    def add_track_via(self, coord, layer_pair=('B.Cu', 'F.Cu'), size=None, drill=None):
         """Create a via on the board
 
         Args:
             coord: Position of the via
-            layer_pair: Tuple of the connected layers (for example ('B_Cu', 'F_Cu'))
+            layer_pair: Tuple of the connected layers (for example ('B.Cu', 'F.Cu'))
             size: size of via in mm, or None for current selection
             drill: size of drill in mm, or None for current selection
         """
@@ -144,7 +144,7 @@ class Board(object):
             drill = from_mm(drill)
         via = pcbnew.VIA(self.board)
         #via.SetFlags( IS_NEW )
-        #via.SetViaType( GetDesignSettings().m_CurrentViaType )
+        #via.SetViaType( GetDesignSettings().m.CurrentViaType )
         via.SetWidth(size)
         #via.SetNetCode( GetBoard()->GetHighLightNetCode() )
         via.SetEnd(point_mm(coord[0], coord[1]))
@@ -155,7 +155,7 @@ class Board(object):
         self.board.Add(via)
         return via
 
-    def add_line(self, start, end, layer='F_SilkS', width=0.15):
+    def add_line(self, start, end, layer='F.SilkS', width=0.15):
         """Create a graphic line on the board"""
         a = pcbnew.DRAWSEGMENT(self.board)
         a.SetShape(pcbnew.S_SEGMENT)
@@ -166,12 +166,12 @@ class Board(object):
         self.board.Add(a)
         return a
 
-    def add_polyline(self, coords, layer='F_SilkS', width=0.15):
+    def add_polyline(self, coords, layer='F.SilkS', width=0.15):
         """Create a graphic polyline on the board"""
         for n in range(len(coords)-1):
             self.add_line(coords[n], coords[n+1], layer=layer, width=width)
 
-    def add_circle(self, center, radius, layer='F_SilkS', width=0.15):
+    def add_circle(self, center, radius, layer='F.SilkS', width=0.15):
         """Create a graphic circle on the board"""
         a = pcbnew.DRAWSEGMENT(self.board)
         a.SetShape(pcbnew.S_CIRCLE)
@@ -184,7 +184,7 @@ class Board(object):
         self.board.Add(a)
         return a
 
-    def add_arc(self, center, radius, start_angle, stop_angle, layer='F_SilkS', width=0.15):
+    def add_arc(self, center, radius, start_angle, stop_angle, layer='F.SilkS', width=0.15):
         """Create a graphic arc on the board"""
         start_coord = radius * cmath.exp(math.radians(start_angle-90)*1j)
         start_coord = point_mm(start_coord.real, start_coord.imag)
@@ -210,7 +210,7 @@ class Module(object):
         """Move module to new position on board"""
         self.module.SetPosition(point_mm(pos[0], pos[1]))
 
-    def add_line(self, start, end, layer='F_SilkS', width=0.15):
+    def add_line(self, start, end, layer='F.SilkS', width=0.15):
         """Create a graphic line on the module"""
         a = pcbnew.EDGE_MODULE(self.module)
         a.SetShape(pcbnew.S_SEGMENT)
@@ -222,12 +222,12 @@ class Module(object):
         self.module.Add(a)
         return a
 
-    def add_polyline(self, coords, layer='F_SilkS', width=0.15):
+    def add_polyline(self, coords, layer='F.SilkS', width=0.15):
         """Create a graphic polyline on the module"""
         for n in range(len(coords)-1):
             self.add_line(coords[n], coords[n+1], layer=layer, width=width)
 
-    def add_circle(self, center, radius, layer='F_SilkS', width=0.15):
+    def add_circle(self, center, radius, layer='F.SilkS', width=0.15):
         """Create a graphic circle on the module"""
         a = pcbnew.EDGE_MODULE(self.module)
         a.SetShape(pcbnew.S_CIRCLE)
@@ -240,7 +240,7 @@ class Module(object):
         self.module.Add(a)
         return a
 
-    def add_arc(self, center, radius, start_angle, stop_angle, layer='F_SilkS', width=0.15):
+    def add_arc(self, center, radius, start_angle, stop_angle, layer='F.SilkS', width=0.15):
         """Create a graphic arc on the module"""
         start_coord = radius * cmath.exp(math.radians(start_angle-90)*1j)
         start_coord = point_mm(start_coord.real, start_coord.imag)
@@ -267,7 +267,7 @@ class Module(object):
             pad_type: One of 'standard', 'smd', 'conn', 'hole_not_plated'
             shape: One of 'circle', 'rect', 'oval', 'trapezoid'
             drill: drill size in mm, single value for round hole, or tuple for oblong hole.
-            layers: None for default, or a list of layer definitions (for example: ['F_Cu', 'F_Mask'])
+            layers: None for default, or a list of layer definitions (for example: ['F.Cu', 'F.Mask'])
         """
         pad_types = {'standard':pcbnew.PAD_STANDARD,
                      'smd':pcbnew.PAD_SMD,
@@ -347,7 +347,7 @@ def test():
     m.add_arc(center=(0, 0), radius=8, start_angle=-90, stop_angle=90, width=0.2)
     m.add_line(start=(-8, 0), end=(8, 0), width=0.2)
     m.add_pad(pos=(-4, -3), size=2, drill=1)
-    m.add_pad(pos=(4, -3), size=2, drill=1, layers=['B_Cu', 'F_Cu'])
+    m.add_pad(pos=(4, -3), size=2, drill=1, layers=['B.Cu', 'F.Cu'])
     for n, x in enumerate([-1, -.5, 0, .5, 1]):
         m.add_pad(pos=(x, -4), size=(0.25, 1.2), name=n, pad_type='smd', shape='rect')
 
@@ -357,9 +357,9 @@ def test():
     # add test track with via
     track1 = [(30, 26), (30, 50), (60, 80)]
     track2 = [(60, 80), (80, 80)]
-    pcb.add_track(track1, layer='F_Cu', width=0.25)
+    pcb.add_track(track1, layer='F.Cu', width=0.25)
     pcb.add_track_via(track1[-1])
-    pcb.add_track(track2, layer='B_Cu')
+    pcb.add_track(track2, layer='B.Cu')
 
     # add board edge
     ul = (20, 20)
@@ -369,4 +369,4 @@ def test():
             (ul[0]+pcb_size[0], ul[1]+pcb_size[1]),
             (ul[0]+pcb_size[0], ul[1]),
             ul]
-    pcb.add_polyline(edge, layer='Edge_Cuts')
+    pcb.add_polyline(edge, layer='Edge.Cuts')
