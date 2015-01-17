@@ -51,15 +51,15 @@ def mm_to_inch(val):
         return [mm_to_inch(v) for v in val]
 
 # helper functions
-def from_mm(val):
+def _from_mm(val):
     """Convert mm to internal units"""
     return pcbnew.FromMM(float(val))
 
-def point_mm(x, y):
+def _point_mm(x, y):
     """Convert coordinate in mm to internal coordinate"""
     return pcbnew.wxPointMM(float(x), float(y))
 
-def size_mm(x, y):
+def _size_mm(x, y):
     """Convert size in mm to internal size"""
     return pcbnew.wxSizeMM(float(x), float(y))
 
@@ -95,7 +95,14 @@ class Board(object):
         if board == None:
             # if no board is given create a new board
             board = pcbnew.BOARD()
-        self.board = board
+        self._board = board
+
+    @property
+    def modules(self):
+        m = self._board.GetModules().begin()
+        while not m == None:
+            yield Module(m)
+            m = m.Next()
 
     def save(self, filename=None):
         """Save the board to a file
@@ -103,38 +110,38 @@ class Board(object):
         filename should have .kicad_pcb extention.
         """
         if filename == None:
-            filename = self.board.GetFileName()
-        self.board.Save(filename)
+            filename = self._board.GetFileName()
+        self._board.Save(filename)
 
     def create_module(self, ref, pos=(0, 0)):
         """Create new module on the board"""
-        module = pcbnew.MODULE(self.board)
+        module = pcbnew.MODULE(self._board)
         module.SetReference(ref)
-        module.SetPosition(point_mm(pos[0], pos[1]))
-        self.board.Add(module)
+        module.SetPosition(_point_mm(pos[0], pos[1]))
+        self._board.Add(module)
         return Module(module)
 
     def copy_module(self, original, ref, pos=(0, 0)):
         """Create a copy of an existing module on the board"""
-        module = pcbnew.MODULE(self.board)
+        module = pcbnew.MODULE(self._board)
         module.Copy(original.module)
         module.SetReference(ref)
-        module.SetPosition(point_mm(pos[0], pos[1]))
-        self.board.Add(module)
+        module.SetPosition(_point_mm(pos[0], pos[1]))
+        self._board.Add(module)
         return Module(module)
 
     def add_track_segment(self, start, end, layer='F.Cu', width=None):
         """Create a track segment"""
         if width == None:
-            width = self.board.GetDesignSettings().GetCurrentTrackWidth()
+            width = self._board.GetDesignSettings().GetCurrentTrackWidth()
         else:
-            width = from_mm(width)
-        t = pcbnew.TRACK(self.board)
+            width = _from_mm(width)
+        t = pcbnew.TRACK(self._board)
         t.SetWidth(width)
         t.SetLayer(get_layer(layer))
-        t.SetStart(point_mm(start[0], start[1]))
-        t.SetEnd(point_mm(end[0], end[1]))
-        self.board.Add(t)
+        t.SetStart(_point_mm(start[0], start[1]))
+        t.SetEnd(_point_mm(end[0], end[1]))
+        self._board.Add(t)
         return t
 
     def add_track(self, coords, layer='F.Cu', width=None):
@@ -155,35 +162,35 @@ class Board(object):
             drill: size of drill in mm, or None for current selection
         """
         if size == None:
-            size = self.board.GetDesignSettings().GetCurrentViaSize()
+            size = self._board.GetDesignSettings().GetCurrentViaSize()
         else:
-            size = from_mm(size)
+            size = _from_mm(size)
         if drill == None:
-            drill = self.board.GetDesignSettings().GetCurrentViaDrill()
+            drill = self._board.GetDesignSettings().GetCurrentViaDrill()
         else:
-            drill = from_mm(drill)
-        via = pcbnew.VIA(self.board)
+            drill = _from_mm(drill)
+        via = pcbnew.VIA(self._board)
         #via.SetFlags( IS_NEW )
         #via.SetViaType( GetDesignSettings().m.CurrentViaType )
         via.SetWidth(size)
         #via.SetNetCode( GetBoard()->GetHighLightNetCode() )
-        via.SetEnd(point_mm(coord[0], coord[1]))
-        via.SetStart(point_mm(coord[0], coord[1]))
+        via.SetEnd(_point_mm(coord[0], coord[1]))
+        via.SetStart(_point_mm(coord[0], coord[1]))
 
         via.SetLayerPair(get_layer(layer_pair[0]), get_layer(layer_pair[1]))
         via.SetDrill(drill)
-        self.board.Add(via)
+        self._board.Add(via)
         return via
 
     def add_line(self, start, end, layer='F.SilkS', width=0.15):
         """Create a graphic line on the board"""
-        a = pcbnew.DRAWSEGMENT(self.board)
+        a = pcbnew.DRAWSEGMENT(self._board)
         a.SetShape(pcbnew.S_SEGMENT)
-        a.SetStart(point_mm(start[0], start[1]))
-        a.SetEnd(point_mm(end[0], end[1]))
+        a.SetStart(_point_mm(start[0], start[1]))
+        a.SetEnd(_point_mm(end[0], end[1]))
         a.SetLayer(get_layer(layer))
-        a.SetWidth(from_mm(width))
-        self.board.Add(a)
+        a.SetWidth(_from_mm(width))
+        self._board.Add(a)
         return a
 
     def add_polyline(self, coords, layer='F.SilkS', width=0.15):
@@ -193,53 +200,75 @@ class Board(object):
 
     def add_circle(self, center, radius, layer='F.SilkS', width=0.15):
         """Create a graphic circle on the board"""
-        a = pcbnew.DRAWSEGMENT(self.board)
+        a = pcbnew.DRAWSEGMENT(self._board)
         a.SetShape(pcbnew.S_CIRCLE)
-        a.SetCenter(point_mm(center[0], center[1]))
-        start_coord = point_mm(center[0], center[1]+radius)
+        a.SetCenter(_point_mm(center[0], center[1]))
+        start_coord = _point_mm(center[0], center[1]+radius)
         a.SetArcStart(start_coord)
         a.SetLayer(get_layer(layer))
-        a.SetWidth(from_mm(width))
+        a.SetWidth(_from_mm(width))
         a.SetLocalCoord()
-        self.board.Add(a)
+        self._board.Add(a)
         return a
 
     def add_arc(self, center, radius, start_angle, stop_angle, layer='F.SilkS', width=0.15):
         """Create a graphic arc on the board"""
         start_coord = radius * cmath.exp(math.radians(start_angle-90)*1j)
-        start_coord = point_mm(start_coord.real, start_coord.imag)
+        start_coord = _point_mm(start_coord.real, start_coord.imag)
         angle = stop_angle - start_angle
-        a = pcbnew.DRAWSEGMENT(self.board)
+        a = pcbnew.DRAWSEGMENT(self._board)
         a.SetShape(pcbnew.S_ARC)
-        a.SetCenter(point_mm(center[0], center[1]))
+        a.SetCenter(_point_mm(center[0], center[1]))
         a.SetArcStart(start_coord)
         a.SetAngle(angle*10)
         a.SetLayer(get_layer(layer))
-        a.SetWidth(from_mm(width))
+        a.SetWidth(_from_mm(width))
         a.SetLocalCoord()
-        self.board.Add(a)
+        self._board.Add(a)
         return a
 
 
 class Module(object):
     def __init__(self, module):
         """Convenience wrapper for pcbnew Module"""
-        self.module = module
+        self._module = module
 
-    def set_position(self, pos):
-        """Move module to new position on board"""
-        self.module.SetPosition(point_mm(pos[0], pos[1]))
+    @property
+    def position(self):
+        return pcbnew.ToMM(self._module.GetPosition())
+    @position.setter
+    def position(self, pos):
+        self._module.SetPosition(_point_mm(pos[0], pos[1]))
+
+    @property
+    def reference(self):
+        return self._module.GetReference()
+    @reference.setter
+    def reference(self, value):
+        self._module.SetReference(value)
+
+    @property
+    def value(self):
+        return self._module.GetValue()
+    @value.setter
+    def value(self, value):
+        self._module.SetValue(value)
+
+    def flip(self, center=None):
+        if center==None:
+            center = self.position
+        self._module.Flip(_point_mm(center[0], center[1]))
 
     def add_line(self, start, end, layer='F.SilkS', width=0.15):
         """Create a graphic line on the module"""
-        a = pcbnew.EDGE_MODULE(self.module)
+        a = pcbnew.EDGE_MODULE(self._module)
         a.SetShape(pcbnew.S_SEGMENT)
-        a.SetStart(point_mm(start[0], start[1]))
-        a.SetEnd(point_mm(end[0], end[1]))
+        a.SetStart(_point_mm(start[0], start[1]))
+        a.SetEnd(_point_mm(end[0], end[1]))
         a.SetLayer(get_layer(layer))
-        a.SetWidth(from_mm(width))
+        a.SetWidth(_from_mm(width))
         a.SetLocalCoord()
-        self.module.Add(a)
+        self._module.Add(a)
         return a
 
     def add_polyline(self, coords, layer='F.SilkS', width=0.15):
@@ -249,31 +278,31 @@ class Module(object):
 
     def add_circle(self, center, radius, layer='F.SilkS', width=0.15):
         """Create a graphic circle on the module"""
-        a = pcbnew.EDGE_MODULE(self.module)
+        a = pcbnew.EDGE_MODULE(self._module)
         a.SetShape(pcbnew.S_CIRCLE)
-        a.SetCenter(point_mm(center[0], center[1]))
-        start_coord = point_mm(center[0], center[1]+radius)
+        a.SetCenter(_point_mm(center[0], center[1]))
+        start_coord = _point_mm(center[0], center[1]+radius)
         a.SetArcStart(start_coord)
         a.SetLayer(get_layer(layer))
-        a.SetWidth(from_mm(width))
+        a.SetWidth(_from_mm(width))
         a.SetLocalCoord()
-        self.module.Add(a)
+        self._module.Add(a)
         return a
 
     def add_arc(self, center, radius, start_angle, stop_angle, layer='F.SilkS', width=0.15):
         """Create a graphic arc on the module"""
         start_coord = radius * cmath.exp(math.radians(start_angle-90)*1j)
-        start_coord = point_mm(start_coord.real, start_coord.imag)
+        start_coord = _point_mm(start_coord.real, start_coord.imag)
         angle = stop_angle - start_angle
-        a = pcbnew.EDGE_MODULE(self.module)
+        a = pcbnew.EDGE_MODULE(self._module)
         a.SetShape(pcbnew.S_ARC)
-        a.SetCenter(point_mm(center[0], center[1]))
+        a.SetCenter(_point_mm(center[0], center[1]))
         a.SetArcStart(start_coord)
         a.SetAngle(angle*10)
         a.SetLayer(get_layer(layer))
-        a.SetWidth(from_mm(width))
+        a.SetWidth(_from_mm(width))
         a.SetLocalCoord()
-        self.module.Add(a)
+        self._module.Add(a)
         return a
 
     def add_pad(self, pos, size, name='', pad_type='standard', shape='circle',
@@ -300,7 +329,7 @@ class Module(object):
         pad_type = pad_types[pad_type]
         shape = shapes[shape]
 
-        pad = pcbnew.D_PAD(self.module)
+        pad = pcbnew.D_PAD(self._module)
 
         if layers == None:
             default_mask = {pcbnew.PAD_STANDARD:pad.StandardMask(),
@@ -313,21 +342,21 @@ class Module(object):
 
         pad.SetShape(shape)
         if shape == pcbnew.PAD_CIRCLE:
-            pad.SetSize(size_mm(size, size))
+            pad.SetSize(_size_mm(size, size))
         else:
-            pad.SetSize(size_mm(size[0], size[1]))
+            pad.SetSize(_size_mm(size[0], size[1]))
         pad.SetAttribute(pad_type)
         pad.SetLayerSet(layers)
         if pad_type in (pcbnew.PAD_STANDARD, pcbnew.PAD_HOLE_NOT_PLATED):
             if hasattr(drill, '__getitem__'):
                 pad.SetDrillShape(pcbnew.PAD_DRILL_OBLONG)
-                pad.SetDrillSize(size_mm(drill[0], drill[1]))
+                pad.SetDrillSize(_size_mm(drill[0], drill[1]))
             else:
-                pad.SetDrillSize(size_mm(drill, drill))
-        pad.SetPos(point_mm(pos[0], pos[1]))
+                pad.SetDrillSize(_size_mm(drill, drill))
+        pad.SetPos(_point_mm(pos[0], pos[1]))
         pad.SetPadName(name)
         pad.SetLocalCoord()
-        self.module.Add(pad)
+        self._module.Add(pad)
         return pad
 
     def save(self, library_path):
@@ -335,7 +364,7 @@ class Module(object):
 
         library_path should end with .pretty
         """
-        self.module.SetFPID(pcbnew.FPID(self.module.GetReference()))
+        self._module.SetFPID(pcbnew.FPID(self._module.GetReference()))
 
         io = pcbnew.PCB_IO()
 
@@ -344,7 +373,7 @@ class Module(object):
         except IOError:
             pass # we try to create, but may be it exists already
 
-        io.FootprintSave(library_path, self.module)
+        io.FootprintSave(library_path, self._module)
 
 def get_board():
     """Get the current board"""
@@ -372,7 +401,7 @@ def test():
         m.add_pad(pos=(x, -4), size=(0.25, 1.2), name=n, pad_type='smd', shape='rect')
 
     # move module to right location
-    m.set_position((30, 30))
+    m.position = (30, 30)
 
     # add test track with via
     track1 = [(30, 26), (30, 50), (60, 80)]
