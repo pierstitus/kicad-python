@@ -119,19 +119,23 @@ class Board(object):
             filename = self._board.GetFileName()
         self._board.Save(filename)
 
-    def create_module(self, ref, position=(0, 0)):
+    def find_module(self, reference):
+        """Find module with the given reference"""
+        return Module(self._board.FindModuleByReference(reference))
+
+    def create_module(self, reference, position=(0, 0)):
         """Create new module on the board"""
         module = pcbnew.MODULE(self._board)
-        module.SetReference(ref)
+        module.SetReference(reference)
         module.SetPosition(_point_mm(position[0], position[1]))
         self._board.Add(module)
         return Module(module)
 
-    def copy_module(self, original, ref, position=(0, 0)):
+    def copy_module(self, original, reference, position=(0, 0)):
         """Create a copy of an existing module on the board"""
         module = pcbnew.MODULE(self._board)
-        module.Copy(original.module)
-        module.SetReference(ref)
+        module.Copy(original._module)
+        module.SetReference(reference)
         module.SetPosition(_point_mm(position[0], position[1]))
         self._board.Add(module)
         return Module(module)
@@ -339,6 +343,7 @@ class Module(object):
         pad.name = name
         pad.position = position
         pad.layers = layers
+        pad.drill = drill
 
         self._module.Add(pad._pad)
         return pad
