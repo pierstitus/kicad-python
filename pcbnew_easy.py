@@ -265,13 +265,29 @@ class Module(object):
         self._module.SetValue(value)
 
     @property
+    def orientation(self):
+        return self._module.GetOrientation()/10.0
+    @orientation.setter
+    def orientation(self, value):
+        self._module.SetOrientation(value*10)
+
+    @property
     def pads(self):
         p = self._module.Pads().begin()
         while not p == None:
             yield Pad(p)
             p = p.Next()
 
+    def delete(self):
+        """Delete module from board"""
+        self._module.GetBoard().Delete(self._module)
+        self._module = None
+
     def flip(self, center=None):
+        """Flip module
+
+        If center is given flip w.r.t. that coordinate.
+        """
         if center==None:
             center = self.position
         self._module.Flip(_point_mm(center[0], center[1]))
@@ -462,6 +478,11 @@ class Pad(object):
                 self._pad.SetDrillSize(_size_mm(drill, drill))
         else:
             pass
+
+    def delete(self):
+        """Delete pad from module"""
+        self._pad.GetParent().DeleteChild(self._pad)
+        self._pad = None
 
 def get_board():
     """Get the current board"""
