@@ -50,18 +50,36 @@ def mm_to_inch(val):
     except TypeError:
         return [mm_to_inch(v) for v in val]
 
-# helper functions
-def _from_mm(val):
+# unit helper functions
+def _mm_to_iu(val):
     """Convert mm to internal units"""
     return pcbnew.FromMM(float(val))
 
-def _point_mm(x, y):
+def _mm_to_wxpoint(x, y):
     """Convert coordinate in mm to internal coordinate"""
     return pcbnew.wxPointMM(float(x), float(y))
 
-def _size_mm(x, y):
+def _mm_to_wxsize(x, y):
     """Convert size in mm to internal size"""
     return pcbnew.wxSizeMM(float(x), float(y))
+
+def _iu_to_mm(wxobj):
+    return pcb.ToMM(wxobj)
+
+_from_wxpoint = _iu_to_mm
+_to_wxpoint = _mm_to_wxpoint
+
+_from_wxsize = _iu_to_mm
+_to_wxsize = _mm_to_wxsize
+
+_from_iu = _iu_to_mm
+_to_iu = _mm_to_iu
+
+def _angle_to_iu(val):
+    return val * 10.0
+
+def _angle_from_iu(val):
+    return val / 10.0
 
 def rotate(coord, angle):
     """Rotate coordinate around (0, 0)"""
@@ -127,7 +145,7 @@ class Board(object):
         """Create new module on the board"""
         module = pcbnew.MODULE(self._board)
         module.SetReference(reference)
-        module.SetPosition(_point_mm(position[0], position[1]))
+        module.SetPosition(_to_wxpoint(position[0], position[1]))
         self._board.Add(module)
         return Module(module)
 
@@ -136,7 +154,7 @@ class Board(object):
         module = pcbnew.MODULE(self._board)
         module.Copy(original._module)
         module.SetReference(reference)
-        module.SetPosition(_point_mm(position[0], position[1]))
+        module.SetPosition(_to_wxpoint(position[0], position[1]))
         self._board.Add(module)
         return Module(module)
 
@@ -149,8 +167,8 @@ class Board(object):
         t = pcbnew.TRACK(self._board)
         t.SetWidth(width)
         t.SetLayer(_get_layer(layer))
-        t.SetStart(_point_mm(start[0], start[1]))
-        t.SetEnd(_point_mm(end[0], end[1]))
+        t.SetStart(_to_wxpoint(start[0], start[1]))
+        t.SetEnd(_to_wxpoint(end[0], end[1]))
         self._board.Add(t)
         return t
 
@@ -184,8 +202,8 @@ class Board(object):
         #via.SetViaType( GetDesignSettings().m.CurrentViaType )
         via.SetWidth(size)
         #via.SetNetCode( GetBoard()->GetHighLightNetCode() )
-        via.SetEnd(_point_mm(coord[0], coord[1]))
-        via.SetStart(_point_mm(coord[0], coord[1]))
+        via.SetEnd(_to_wxpoint(coord[0], coord[1]))
+        via.SetStart(_to_wxpoint(coord[0], coord[1]))
 
         via.SetLayerPair(_get_layer(layer_pair[0]), _get_layer(layer_pair[1]))
         via.SetDrill(drill)
@@ -196,8 +214,8 @@ class Board(object):
         """Create a graphic line on the board"""
         a = pcbnew.DRAWSEGMENT(self._board)
         a.SetShape(pcbnew.S_SEGMENT)
-        a.SetStart(_point_mm(start[0], start[1]))
-        a.SetEnd(_point_mm(end[0], end[1]))
+        a.SetStart(_to_wxpoint(start[0], start[1]))
+        a.SetEnd(_to_wxpoint(end[0], end[1]))
         a.SetLayer(_get_layer(layer))
         a.SetWidth(_from_mm(width))
         self._board.Add(a)
@@ -212,8 +230,8 @@ class Board(object):
         """Create a graphic circle on the board"""
         a = pcbnew.DRAWSEGMENT(self._board)
         a.SetShape(pcbnew.S_CIRCLE)
-        a.SetCenter(_point_mm(center[0], center[1]))
-        start_coord = _point_mm(center[0], center[1]+radius)
+        a.SetCenter(_to_wxpoint(center[0], center[1]))
+        start_coord = _to_wxpoint(center[0], center[1]+radius)
         a.SetArcStart(start_coord)
         a.SetLayer(_get_layer(layer))
         a.SetWidth(_from_mm(width))
@@ -224,13 +242,13 @@ class Board(object):
     def add_arc(self, center, radius, start_angle, stop_angle, layer='F.SilkS', width=0.15):
         """Create a graphic arc on the board"""
         start_coord = radius * cmath.exp(math.radians(start_angle-90)*1j)
-        start_coord = _point_mm(start_coord.real, start_coord.imag)
+        start_coord = _to_wxpoint(start_coord.real, start_coord.imag)
         angle = stop_angle - start_angle
         a = pcbnew.DRAWSEGMENT(self._board)
         a.SetShape(pcbnew.S_ARC)
-        a.SetCenter(_point_mm(center[0], center[1]))
+        a.SetCenter(_to_wxpoint(center[0], center[1]))
         a.SetArcStart(start_coord)
-        a.SetAngle(angle*10)
+        a.SetAngle(_angle_to_iu(angle))
         a.SetLayer(_get_layer(layer))
         a.SetWidth(_from_mm(width))
         a.SetLocalCoord()
@@ -245,10 +263,10 @@ class Module(object):
 
     @property
     def position(self):
-        return pcbnew.ToMM(self._module.GetPosition())
+        return _from_wxpoint(self._module.GetPosition())
     @position.setter
     def position(self, position):
-        self._module.SetPosition(_point_mm(position[0], position[1]))
+        self._module.SetPosition(_to_wxpoint(position[0], position[1]))
 
     @property
     def reference(self):
@@ -266,10 +284,10 @@ class Module(object):
 
     @property
     def orientation(self):
-        return self._module.GetOrientation()/10.0
+        return _angle_from_iu(self._module.GetOrientation())
     @orientation.setter
     def orientation(self, value):
-        self._module.SetOrientation(value*10)
+        self._module.SetOrientation(_angle_to_iu(value))
 
     @property
     def pads(self):
@@ -290,14 +308,14 @@ class Module(object):
         """
         if center==None:
             center = self.position
-        self._module.Flip(_point_mm(center[0], center[1]))
+        self._module.Flip(_to_wxpoint(center[0], center[1]))
 
     def add_line(self, start, end, layer='F.SilkS', width=0.15):
         """Create a graphic line on the module"""
         a = pcbnew.EDGE_MODULE(self._module)
         a.SetShape(pcbnew.S_SEGMENT)
-        a.SetStart(_point_mm(start[0], start[1]))
-        a.SetEnd(_point_mm(end[0], end[1]))
+        a.SetStart(_to_wxpoint(start[0], start[1]))
+        a.SetEnd(_to_wxpoint(end[0], end[1]))
         a.SetLayer(_get_layer(layer))
         a.SetWidth(_from_mm(width))
         a.SetLocalCoord()
@@ -313,8 +331,8 @@ class Module(object):
         """Create a graphic circle on the module"""
         a = pcbnew.EDGE_MODULE(self._module)
         a.SetShape(pcbnew.S_CIRCLE)
-        a.SetCenter(_point_mm(center[0], center[1]))
-        start_coord = _point_mm(center[0], center[1]+radius)
+        a.SetCenter(_to_wxpoint(center[0], center[1]))
+        start_coord = _to_wxpoint(center[0], center[1]+radius)
         a.SetArcStart(start_coord)
         a.SetLayer(_get_layer(layer))
         a.SetWidth(_from_mm(width))
@@ -325,13 +343,13 @@ class Module(object):
     def add_arc(self, center, radius, start_angle, stop_angle, layer='F.SilkS', width=0.15):
         """Create a graphic arc on the module"""
         start_coord = radius * cmath.exp(math.radians(start_angle-90)*1j)
-        start_coord = _point_mm(start_coord.real, start_coord.imag)
+        start_coord = _to_wxpoint(start_coord.real, start_coord.imag)
         angle = stop_angle - start_angle
         a = pcbnew.EDGE_MODULE(self._module)
         a.SetShape(pcbnew.S_ARC)
-        a.SetCenter(_point_mm(center[0], center[1]))
+        a.SetCenter(_to_wxpoint(center[0], center[1]))
         a.SetArcStart(start_coord)
-        a.SetAngle(angle*10)
+        a.SetAngle(_angle_to_iu(angle))
         a.SetLayer(_get_layer(layer))
         a.SetWidth(_from_mm(width))
         a.SetLocalCoord()
@@ -398,10 +416,10 @@ class Pad(object):
 
     @property
     def position(self):
-        return pcbnew.ToMM(self._pad.GetPosition())
+        return _from_wxpoint(self._pad.GetPosition())
     @position.setter
     def position(self, position):
-        self._pad.SetPosition(_point_mm(position[0], position[1]))
+        self._pad.SetPosition(_to_wxpoint(position[0], position[1]))
         self._pad.SetLocalCoord()
 
     @property
@@ -428,22 +446,22 @@ class Pad(object):
     @property
     def size(self):
         if self.shape == 'circle':
-            return pcbnew.ToMM(self._pad.GetSize())[0]
+            return _from_wxsize(self._pad.GetSize())[0]
         else:
-            return pcbnew.ToMM(self._pad.GetSize())
+            return _from_wxsize(self._pad.GetSize())
     @size.setter
     def size(self, size):
         if self.shape == 'circle':
-            self._pad.SetSize(_size_mm(size, size))
+            self._pad.SetSize(_to_wxsize(size, size))
         else:
-            self._pad.SetSize(_size_mm(size[0], size[1]))
+            self._pad.SetSize(_to_wxsize(size[0], size[1]))
 
     @property
     def orientation(self):
-        return self._pad.GetOrientation()/10.0
+        return _angle_from_iu(self._pad.GetOrientation())
     @orientation.setter
     def orientation(self, value):
-        self._pad.SetOrientation(value*10)
+        self._pad.SetOrientation(_angle_to_iu(value))
 
     @property
     def layers(self):
@@ -463,9 +481,9 @@ class Pad(object):
     def drill(self):
         if self.type in ('standard', 'hole_not_plated'):
             if self._pad.GetDrillShape() == pcbnew.PAD_DRILL_OBLONG:
-                return pcbnew.ToMM(self._pad.GetDrillSize())
+                return _from_wxsize(self._pad.GetDrillSize())
             else:
-                return pcbnew.ToMM(self._pad.GetDrillSize())[0]
+                return _from_wxsize(self._pad.GetDrillSize())[0]
         else:
             return None
     @drill.setter
@@ -473,9 +491,9 @@ class Pad(object):
         if self.type in ('standard', 'hole_not_plated'):
             if hasattr(drill, '__getitem__'):
                 self._pad.SetDrillShape(pcbnew.PAD_DRILL_OBLONG)
-                self._pad.SetDrillSize(_size_mm(drill[0], drill[1]))
+                self._pad.SetDrillSize(_to_wxsize(drill[0], drill[1]))
             else:
-                self._pad.SetDrillSize(_size_mm(drill, drill))
+                self._pad.SetDrillSize(_to_wxsize(drill, drill))
         else:
             pass
 
