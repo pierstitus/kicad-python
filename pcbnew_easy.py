@@ -91,10 +91,7 @@ layer_dict = {pcbnew.BOARD_GetStandardLayerName(n):n for n in range(pcbnew.LAYER
 layer_names = {s:n for n, s in layer_dict.iteritems()}
 
 def _get_layer(s):
-    """Get layer id from layer name
-
-    If it is already an int just return it.
-    """
+    """Get layer id from layer name"""
     return layer_dict[s]
 
 def _to_LayerSet(layers):
