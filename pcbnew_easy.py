@@ -155,7 +155,7 @@ class Board(object):
         """Find module with the given reference"""
         return Module(self._board.FindModuleByReference(reference))
 
-    def create_module(self, reference, position=(0, 0)):
+    def new_module(self, reference, position=(0, 0)):
         """Create new module on the board"""
         module = pcbnew.MODULE(self._board)
         module.SetReference(reference)
@@ -531,7 +531,7 @@ def test():
     pcb = get_board()
 
     # create test module
-    m = pcb.create_module('test')
+    m = pcb.new_module('test')
     m.add_arc(center=(0, 0), radius=8, start_angle=-90, stop_angle=90, width=0.2)
     m.add_line(start=(-8, 0), end=(8, 0), width=0.2)
     m.add_pad(position=(-4, -3), size=2, drill=1)
