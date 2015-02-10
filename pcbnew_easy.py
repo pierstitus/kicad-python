@@ -66,7 +66,7 @@ def _mm_to_wxsize(x, y):
     return pcbnew.wxSizeMM(float(x), float(y))
 
 def _iu_to_mm(wxobj):
-    return pcb.ToMM(wxobj)
+    return pcbnew.ToMM(wxobj)
 
 # unit conversion functions used in the classes below
 _from_wxpoint = _iu_to_mm
@@ -163,7 +163,7 @@ class Board(object):
         if width == None:
             width = self._board.GetDesignSettings().GetCurrentTrackWidth()
         else:
-            width = _from_mm(width)
+            width = _to_iu(width)
         t = pcbnew.TRACK(self._board)
         t.SetWidth(width)
         t.SetLayer(_get_layer(layer))
@@ -192,11 +192,11 @@ class Board(object):
         if size == None:
             size = self._board.GetDesignSettings().GetCurrentViaSize()
         else:
-            size = _from_mm(size)
+            size = _to_iu(size)
         if drill == None:
             drill = self._board.GetDesignSettings().GetCurrentViaDrill()
         else:
-            drill = _from_mm(drill)
+            drill = _to_iu(drill)
         via = pcbnew.VIA(self._board)
         #via.SetFlags( IS_NEW )
         #via.SetViaType( GetDesignSettings().m.CurrentViaType )
@@ -217,7 +217,7 @@ class Board(object):
         a.SetStart(_to_wxpoint(start[0], start[1]))
         a.SetEnd(_to_wxpoint(end[0], end[1]))
         a.SetLayer(_get_layer(layer))
-        a.SetWidth(_from_mm(width))
+        a.SetWidth(_to_iu(width))
         self._board.Add(a)
         return a
 
@@ -234,7 +234,7 @@ class Board(object):
         start_coord = _to_wxpoint(center[0], center[1]+radius)
         a.SetArcStart(start_coord)
         a.SetLayer(_get_layer(layer))
-        a.SetWidth(_from_mm(width))
+        a.SetWidth(_to_iu(width))
         a.SetLocalCoord()
         self._board.Add(a)
         return a
@@ -250,7 +250,7 @@ class Board(object):
         a.SetArcStart(start_coord)
         a.SetAngle(_angle_to_iu(angle))
         a.SetLayer(_get_layer(layer))
-        a.SetWidth(_from_mm(width))
+        a.SetWidth(_to_iu(width))
         a.SetLocalCoord()
         self._board.Add(a)
         return a
@@ -317,7 +317,7 @@ class Module(object):
         a.SetStart(_to_wxpoint(start[0], start[1]))
         a.SetEnd(_to_wxpoint(end[0], end[1]))
         a.SetLayer(_get_layer(layer))
-        a.SetWidth(_from_mm(width))
+        a.SetWidth(_to_iu(width))
         a.SetLocalCoord()
         self._module.Add(a)
         return a
@@ -335,7 +335,7 @@ class Module(object):
         start_coord = _to_wxpoint(center[0], center[1]+radius)
         a.SetArcStart(start_coord)
         a.SetLayer(_get_layer(layer))
-        a.SetWidth(_from_mm(width))
+        a.SetWidth(_to_iu(width))
         a.SetLocalCoord()
         self._module.Add(a)
         return a
@@ -351,7 +351,7 @@ class Module(object):
         a.SetArcStart(start_coord)
         a.SetAngle(_angle_to_iu(angle))
         a.SetLayer(_get_layer(layer))
-        a.SetWidth(_from_mm(width))
+        a.SetWidth(_to_iu(width))
         a.SetLocalCoord()
         self._module.Add(a)
         return a
