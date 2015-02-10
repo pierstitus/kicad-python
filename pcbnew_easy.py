@@ -84,6 +84,20 @@ def _angle_to_iu(val):
 def _angle_from_iu(val):
     return val / 10.0
 
+# if numpy is loaded, use numpy arrays for point and size tuples, to make
+# calculations with points and sizes easier (e.g. module.position + (10,10))
+# Don't use numpy if it's not loaded already to not force a depency on numpy.
+# Another simple vector class might be better suited, but using a well known
+# multidimensional array package has it's benefits too.
+import sys
+if 'numpy' in sys.modules:
+    import numpy
+    def _iu_to_mm_np(wxobj):
+        return numpy.array(pcbnew.ToMM(wxobj))
+    _from_wxpoint = _iu_to_mm_np
+    _from_wxsize = _iu_to_mm_np
+
+
 def rotate(coord, angle):
     """Rotate coordinate around (0, 0)"""
     coord = (coord[0]+coord[1]*1j) * cmath.exp(math.radians(angle)*1j)
