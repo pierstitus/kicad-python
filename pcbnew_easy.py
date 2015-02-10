@@ -34,6 +34,7 @@ def inch_to_mm(val):
     """Convert from inch to mm
 
     Handles single values, sequences, sequences of sequences, etc.
+    Also handles numpy arrays or any other object which can be multiplied with a float.
     """
     try:
         return val * 25.4
@@ -44,6 +45,7 @@ def mm_to_inch(val):
     """Convert from mm to inch
 
     Handles single values, sequences, sequences of sequences, etc.
+    Also handles numpy arrays or any other object which can be multiplied with a float.
     """
     try:
         return val / 25.4
@@ -66,6 +68,7 @@ def _mm_to_wxsize(x, y):
 def _iu_to_mm(wxobj):
     return pcb.ToMM(wxobj)
 
+# unit conversion functions used in the classes below
 _from_wxpoint = _iu_to_mm
 _to_wxpoint = _mm_to_wxpoint
 
