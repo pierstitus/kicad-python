@@ -235,7 +235,6 @@ class Board(object):
         a.SetArcStart(start_coord)
         a.SetLayer(_get_layer(layer))
         a.SetWidth(_to_iu(width))
-        a.SetLocalCoord()
         self._board.Add(a)
         return a
 
@@ -251,7 +250,6 @@ class Board(object):
         a.SetAngle(_angle_to_iu(angle))
         a.SetLayer(_get_layer(layer))
         a.SetWidth(_to_iu(width))
-        a.SetLocalCoord()
         self._board.Add(a)
         return a
 
